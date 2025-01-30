@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent FAQ Assistant</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        button {
+            background: #0069d9;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .chat-history {
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .chat-history div {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .user-question {
+            background: #d1e7ff;
+        }
+
+        .ai-answer {
+            background: #e6ffe6;
+        }
+
+        .toggle-dark {
+            margin-top: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Dark Mode */
+        .dark-mode {
+            background-color: #2b2b2b;
+            color: #fff;
+        }
+
+        .dark-mode .container {
+            background: #3a3a3a;
+            color: #fff;
+        }
+
+        .dark-mode input {
+            background: #555;
+            color: #fff;
+            border: 1px solid #888;
+        }
+
+        .dark-mode .chat-history {
+            background: #444;
+            border: 1px solid #666;
+        }
+
+        .dark-mode button {
+            background: #4a90e2;
+        }
+
+        .dark-mode .toggle-dark {
+            color: #bbb;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Intelligent FAQ Assistant</h2>
+        <input type="text" id="question" placeholder="Ask a question..." onkeypress="handleEnter(event)">
+        <button onclick="askQuestion()">Ask</button>
+        <button onclick="startVoiceRecognition()">🎤 Speak</button>
+        <p id="answer"></p>
+        <div class="chat-history" id="chatHistory"></div>
+        <p class="toggle-dark" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</p>
+        <div class="footer">
+            <p>&copy; 2025 Intelligent FAQ Assistant</p>
+        </div>
+    </div>
+
+    <script>
+        function updateChatHistory(question, answer) {
+            const chatHistory = document.getElementById("chatHistory");
+            chatHistory.innerHTML += `<div class='user-question'><strong>You:</strong> ${question}</div>`;
+            chatHistory.innerHTML += `<div class='ai-answer'><strong>Bot:</strong> ${answer}</div>`;
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll to latest message
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById("question");
+            const answerElement = document.getElementById("answer");
+            const askButton = document.querySelector("button");
+
+            const question = questionInput.value.trim();
+            if (!question) {
+                alert("Please enter a question!");
+                return;
+            }
+
+            askButton.disabled = true;
+            answerElement.innerHTML = "<span class='loading'>Thinking...</span>";
+
+            try {
+                const response = await fetch("/get_answer", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const answer = data.answer || "Sorry, no answer found.";
+                answerElement.innerText = `Answer: ${answer}`;
+
+                updateChatHistory(question, answer);
+            } catch (error) {
+                console.error("Error fetching answer:", error);
+                answerElement.innerText = "Error retrieving answer. Please try again.";
+            } finally {
+                askButton.disabled = false;
+            }
+        }
+
+        function handleEnter(event) {
+            if (event.key === "Enter") {
+                askQuestion();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+
+        function startVoiceRecognition() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "en-US";
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById("question").value = transcript;
+                askQuestion();
+            };
+
+            recognition.onerror = function(event) {
+                alert("Voice recognition failed. Try again.");
+            };
+        }
+    </script>
+</body>
+</html>
